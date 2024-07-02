@@ -8,6 +8,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
+from discord import messageSender
 
 availableDays = []
 
@@ -154,10 +155,11 @@ def randevuYenile():
 
 
 
-def login(username,password):
-    driver = webdriver.Chrome()
-    wait = WebDriverWait(driver,10)
-    driver.get('https://ais.usvisa-info.com/tr-tr/niv/users/sign_in')
+def login():
+    pass
+
+def main_program(username, password):
+    
     emailXpath = "/html/body/div[5]/main/div[3]/div/div[1]/div/form/div[1]/input"
     passwordXpath = "/html/body/div[5]/main/div[3]/div/div[1]/div/form/div[2]/input"
     checkboxXpath = "/html/body/div[5]/main/div[3]/div/div[1]/div/form/div[3]/label"
@@ -171,32 +173,29 @@ def login(username,password):
     passwordElement.send_keys(password)
     checkboxElement.click()
     loginElement.click()
-   
-
-def steps_of_program(username, password):
-    
-    login("mehmetalperdilek@hotmail.com","MAD1990**")
     currentState()
     randevuYenile()
     basvuruSahibiSec()
     randevuZamanla()
     tarihBul()
     checkMonthByMonth()
-
-
     time.sleep(10)
 
 
 
-def main_program():
-   
-    try:
-        steps_of_program()
-    except Exception as e:
-            print("there is an exception happened")
-            print(e)
-            driver.quit()   
-    finally:
-        time.sleep(5)
-        main_program()
+
+driver = webdriver.Chrome()
+wait = WebDriverWait(driver,10)
+driver.get('https://ais.usvisa-info.com/tr-tr/niv/users/sign_in')
+main_program("mehmetalperdilek@hotmail.com","MAD1990**")
+
+
+
+
+
+
+
+
+
+
 
