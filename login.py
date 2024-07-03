@@ -1,13 +1,10 @@
+
 import json
 from lib2to3.pgen2 import driver
-from os import wait
-from tkinter import *
-from tkinter import messagebox
+import logging
 from datetime import date, datetime
 from xmlrpc.client import DateTime
-
 from bs4 import BeautifulSoup
-
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
@@ -17,8 +14,12 @@ import time
 from discord import messageSender
 from expires import calculateDurationFromEpoch
 
+logging.basicConfig(filename='programLoglari.log', level=logging.INFO)
 
-mockDate = datetime(2025,8,14)
+
+
+my_Date = datetime(2027,3,15)
+the_date = {'saat':'saat','tarih':my_Date,'sehir':"Eskisehir"}
 availableDays = []
 #availableIstanbulDays = []
 #availableAnkaraDays = []
@@ -41,33 +42,58 @@ def getlocalStorageObject(driver):
     return localStorage
 
 
+def randevuTarihiniDegistir(wait):
+    print("randevitarihidegistir giridli")
+    time.sleep(1)
+    tarihiniDegistirButtonID = "appointments_submit_action"
+    tarihiniDegistirButtonLi = wait.until(EC.element_to_be_clickable((By.ID, tarihiniDegistirButtonID)))
+    time.sleep(1.5)
+    tarihiniDegistirButtonLi.click()
+    time.sleep(1)
+    revalPopUp = wait.until(EC.visibility_of_all_elements_located((By.CLASS_NAME, 'reveal')))
+    emin_misin_onayla_button = revalPopUp.find_elements(By.CLASS_NAME, "alert") 
+    print(emin_misin_onayla_button)
+    time.sleep(1)
+    #emin_misin_onayla_button.click()
+    messageSender("Randevu Tarihi Degistirildi.!")
+    logging.info("Randevu tarihi degistirildi")
+    print("randevutarihidegis sonu")
 
-def uygunluk_var_send_message(availableDays,dayFound,saat,date_string,sehir):
-    print("uygunluk var send message")
-    
+def uygunluk_var_send_message(availableDays,dayFound,saat,date_string,sehir,wait):
+    sepetteki = "Sepetteki tarih : {}".format(availableDays[0])
+    kontrol_edilen = "Kontrol edilen tarih : {} - ".format(dayFound)
+    logging.info((sepetteki+kontrol_edilen))
+    #print("Sepeteki tarih : ", availableDays[0])
+    print("Kontrol edilen tarih :",dayFound)
 
-    
+
+    the_day = {'saat':saat,'tarih':dayFound,'sehir':sehir}
     if ((len(availableDays) <= 0)):
-        the_day = {'saat':saat,'tarih':dayFound,'sehir':sehir}
         availableDays.append(the_day) 
-        messageSender("Uygun Tarih Bulundu 😇{} {} saat {}".format(sehir,date_string,saat))
+        the_message = "Uygun Tarih Bulundu 😇{} {} saat {}".format(sehir,date_string,saat)
+        messageSender(the_message)
+        logging.info(the_message)
+        randevuTarihiniDegistir(wait=wait)
 
     else:
         timeDifference = (availableDays[0]['tarih'] - dayFound).days
         #print("en son bulunan tarihten daha erkene cekilen gun sayısı", timeDifference)
         if (timeDifference > 0):
+            the_message = "Keşfedilen yeni tarih var! {} {} {} son bulunan tarihten {} gun daha yakın😇 ".format(sehir,date_string,saat, timeDifference)
+            messageSender(the_message)
+            logging.info(the_message)
+            randevuTarihiniDegistir(wait=wait)
             availableDays[0] = the_day
-            messageSender("Keşfedilen yeni tarih var! {} {} {} son bulunan tarihten {} gun daha yakın😇 ".format(sehir,date_string,saat, timeDifference))
            
-        elif(timeDifference == 0):
-            print("Daha yeni bir tarih bulunamadı😢 , en yakın tarih hala {} {} {}".format(sehir,date_string,saat))
-            #messageSender("Daha yeni bir tarih bulunamadı😢 , en yakın tarih hala {}".format(date_string))
+        # elif(timeDifference == 0):
+        #     print("Daha yeni bir tarih bulunamadı😢 , en yakın tarih hala {} {} {}".format(sehir,date_string,saat))
+        #     messageSender("Daha yeni bir tarih bulunamadı😢 , en yakın tarih hala {}".format(date_string))
             
         else:
             last_avilable_day = availableDays[0]['tarih']
             string_last_day = last_avilable_day.strftime("%Y-%m-%d")
             #messageSender("😢 tarih giderek uzaklaştı. Yeni tarih {} {} {}, bir önceki tarih ise {} \'idi ".format(sehir,date_string,saat, string_last_day))
-           
+          
     # en_yakın_tarihteki_sehir = availableDays[0]['sehir']
     # en_yakın_tarihteki_saat = availableDays[0]['saat']
     # en_yakın_tarih = availableDays[0]['tarih']
@@ -92,8 +118,9 @@ def checkAvailableHours(driver,wait):
     for option in options:
         if(option.get_attribute('value')):
             proper_hour = option.get_attribute('value')
-            print(proper_hour,type(proper_hour))
+            option.click()
             proper_hour = str(proper_hour)
+            time.sleep(1)
             return proper_hour
 
 
@@ -127,8 +154,10 @@ def dateCrawler(groups,driver,wait,sehir):
                 else:
                     cok_yakin = tooCloseWarning(dayFound)
                     if(cok_yakin):
-                        messageSender("Cok yakin bir tarih var {} {} {}".format(sehir,date_string,availableHour))
-                    uygunluk_var_send_message(availableDays=availableDays,dayFound=dayFound,saat=availableHour,date_string=date_string,sehir=sehir)
+                        the_message = "Cok yakin bir tarih var {} {} {}".format(sehir,date_string,availableHour)
+                        messageSender(the_message)
+                        logging.info(the_message)
+                    uygunluk_var_send_message(availableDays=availableDays,dayFound=dayFound,saat=availableHour,date_string=date_string,sehir=sehir,wait=wait)
                     return True
                 # news = "Uygun Tarih Bulundu 😇 {}".format(date_string)
                 # messagebox.showwarning("US Citizen Hacking", news)
@@ -136,12 +165,13 @@ def dateCrawler(groups,driver,wait,sehir):
     return False
 
 def checkMonthByMonth(driver, wait, sehir):
-    time.sleep(1)
+    time.sleep(2)
     # datePickerElement = wait.until(EC.visibility_of_element_located((By.ID,datePickerDivID)))
     nextButtonClicked = True
     keepSearch = True
-    while (keepSearch):
-        
+    dont_go_far_3_years = 0
+    while (keepSearch and (dont_go_far_3_years < 40)):
+        dont_go_far_3_years = dont_go_far_3_years + 1
         datePickerDivID = "ui-datepicker-div"
         dateNextButtonClass = "ui-datepicker-next"
         if (nextButtonClicked == True):
@@ -191,7 +221,7 @@ def tarihBul(driver, wait):
     return True
 
 def randevuZamanla(driver, wait):
-
+    time.sleep(1)
     konsulateLeftID = "consulate_left"
     konsoloslukElement = wait.until(EC.element_to_be_clickable((By.ID, konsulateLeftID)))
 
@@ -223,7 +253,7 @@ def randevuZamanla(driver, wait):
                     continue
             elif(option.text == "Istanbul"):
                
-                time.sleep(1)
+                time.sleep(3)
                 selectElement.click()
                 time.sleep(2)
                 option.click()
@@ -269,6 +299,10 @@ def mevcutDurum(driver, wait):
     #devamEtElement.click()
     #devamEtXpath = "/html/body/div[4]/main/div[2]/div[3]/div[1]/div/div[1]/div[1]/div[2]/ul/li/a"
     mevcutDurumCard = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "success")))
+    card = mevcutDurumCard.find_element(By.CLASS_NAME, "card")
+    p = card.find_element(By.TAG_NAME, "p")
+    #print("p text : ", p.text)
+  
     devamEtButtonElement = mevcutDurumCard.find_element(By.CLASS_NAME, "button")
     devamEtButtonElement.click()
 
@@ -382,6 +416,7 @@ def main_program():
                 string_e = str(e)
                 print("stringe : ", string_e)
                 errorMessage = "exception1 {}".format(string_e)
+                logging.info(errorMessage)
                 messageSender("Bir Exception ile karsilasidi. Durumu Developer'a BILDIRIDINIZ")
                 #messageSender(errorMessage)
                 loginDuration[0] = 0
@@ -394,6 +429,7 @@ def main_program():
         # print("there is an exception2 happened : ",e)
         string_e = str(e)
         errorMessage = "exception2 {}".format(string_e)
+        logging.info(errorMessage)
         messageSender("Program bir Exception ile karsilasti incelenemesi gerekiyor. Developer'a ulasin +905458510426")
         loginDuration[0] = 0
         counter = 0
