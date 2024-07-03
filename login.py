@@ -2,7 +2,7 @@
 import json
 from lib2to3.pgen2 import driver
 import logging
-from datetime import date, datetime
+from datetime import datetime
 from xmlrpc.client import DateTime
 from bs4 import BeautifulSoup
 from selenium import webdriver
@@ -14,15 +14,14 @@ import time
 from discord import messageSender
 from expires import calculateDurationFromEpoch
 
-logging.basicConfig(filename='programLoglari.log', level=logging.INFO)
+logging.basicConfig(filename='programLoglari.log', level=logging.INFO,datefmt='%Y-%m-%d %H:%M:%S')
 
 
 
-my_Date = datetime(2027,3,15)
+my_Date = datetime(2024,3,15)
 the_date = {'saat':'saat','tarih':my_Date,'sehir':"Eskisehir"}
-availableDays = []
-#availableIstanbulDays = []
-#availableAnkaraDays = []
+availableDays = [the_date]
+
 loginDuration = [2]
 
 
@@ -32,7 +31,20 @@ def tooCloseWarning(date):
     if(timeDiff <= 183):
         return True
         
-
+def quickDateCheck(date,availableDays):
+    print("quick check girildi")
+    if(len(availableDays) > 0):
+        sepetteki_Tarih = availableDays[0]['tarih']
+        date_diff = (sepetteki_Tarih - date).days
+        if(date_diff > 0):
+          
+            return True
+        else:
+            return False
+    else:
+       
+        return True
+    
 
 def getlocalStorageObject(driver):
     # ,"inactiveAt":1719663696176,"expiresAt":1719676296157,"updatedAt":1719661896176,
@@ -59,15 +71,16 @@ def randevuTarihiniDegistir(wait):
     logging.info("Randevu tarihi degistirildi")
     print("randevutarihidegis sonu")
 
-def uygunluk_var_send_message(availableDays,dayFound,saat,date_string,sehir,wait):
-    sepetteki = "Sepetteki tarih : {}".format(availableDays[0])
-    kontrol_edilen = "Kontrol edilen tarih : {} - ".format(dayFound)
-    logging.info((sepetteki+kontrol_edilen))
-    #print("Sepeteki tarih : ", availableDays[0])
-    print("Kontrol edilen tarih :",dayFound)
-
-
+def uygunluk_var_send_message(availableDays,dayFound,saat,sehir,wait):
+    date_string = dayFound.strftime("%Y-%m-%d")
+    if(len(availableDays) > 0):
+        sepetteki = "Sepetteki tarih : {}".format(availableDays[0]['tarih'])
+        logging.info(sepetteki)
+    kontrol_edilen = "Kontrol edilen tarih : {} - ".format(date_string)
+    logging.info(kontrol_edilen)
+    
     the_day = {'saat':saat,'tarih':dayFound,'sehir':sehir}
+
     if ((len(availableDays) <= 0)):
         availableDays.append(the_day) 
         the_message = "Uygun Tarih Bulundu 😇{} {} saat {}".format(sehir,date_string,saat)
@@ -103,23 +116,25 @@ def uygunluk_var_send_message(availableDays,dayFound,saat,date_string,sehir,wait
    
 
 def checkAvailableHours(driver,wait):
+    print("check available hours")
     time.sleep(1)
     timeInputLi = "appointments_consulate_appointment_time_input"
     timeInputLiItem = wait.until(EC.element_to_be_clickable((By.ID, timeInputLi)))
-   
+    
     timeInputSelectID = "appointments_consulate_appointment_time"
     timeInputSelectElement = wait.until(EC.element_to_be_clickable((By.ID, timeInputSelectID)))
     time.sleep(1)
     timeInputSelectElement.click()
-    time.sleep(1)
+    time.sleep(2)
     #clickableOptions = wait.until(EC.element_to_be_clickable((By.TAG_NAME, "option")))
     options = timeInputSelectElement.find_elements(By.TAG_NAME, "option")
     time.sleep(1)
+   
     for option in options:
         if(option.get_attribute('value')):
             proper_hour = option.get_attribute('value')
-            option.click()
             proper_hour = str(proper_hour)
+            option.click()
             time.sleep(1)
             return proper_hour
 
@@ -128,9 +143,9 @@ def checkAvailableHours(driver,wait):
 
 def dateCrawler(groups,driver,wait,sehir):
     
+    bulunanGun = ''
     for month in groups:
-        headerElement = month.find_element(By.CLASS_NAME, 'ui-datepicker-header')
-        
+       
         datePickerGroup = month.find_element(By.TAG_NAME, 'tbody')
         days = datePickerGroup.find_elements(By.TAG_NAME, 'td')
         for day in days:
@@ -144,27 +159,20 @@ def dateCrawler(groups,driver,wait,sehir):
                 data_year = day.get_attribute('data-year')
                 data_year = int(data_year)
                 dayFound = datetime(data_year, data_month_integer, data_day)
-                date_string = dayFound.strftime("%Y-%m-%d")
+                print(dayFound)
+                bulunanGun = dayFound
+                # sorgulanan_tarih_kontrole_deger_mi = quickDateCheck(date=dayFound,availableDays=availableDays)
+                # if(sorgulanan_tarih_kontrole_deger_mi == False):
+                #     print("Sorgulanan tarih kontrole degmez")
+                #     return False
                 time.sleep(1.5)
                 dayLink.click()
-                time.sleep(1.5)
-                availableHour = checkAvailableHours(driver=driver,wait=wait)
-                if(availableHour == False):
-                    continue
-                else:
-                    cok_yakin = tooCloseWarning(dayFound)
-                    if(cok_yakin):
-                        the_message = "Cok yakin bir tarih var {} {} {}".format(sehir,date_string,availableHour)
-                        messageSender(the_message)
-                        logging.info(the_message)
-                    uygunluk_var_send_message(availableDays=availableDays,dayFound=dayFound,saat=availableHour,date_string=date_string,sehir=sehir,wait=wait)
-                    return True
-                # news = "Uygun Tarih Bulundu 😇 {}".format(date_string)
-                # messagebox.showwarning("US Citizen Hacking", news)
-
+                time.sleep(3)
+                return bulunanGun
     return False
 
 def checkMonthByMonth(driver, wait, sehir):
+    print("check month")
     time.sleep(2)
     # datePickerElement = wait.until(EC.visibility_of_element_located((By.ID,datePickerDivID)))
     nextButtonClicked = True
@@ -185,27 +193,28 @@ def checkMonthByMonth(driver, wait, sehir):
             # firstBody = datePickerGroupFirst.find_element(By.TAG_NAME,'tbody')
             # lastBody = datePickerGroupLast.find_element(By.TAG_NAME,'tbody')
             # days = firstBody.find_elements(By.TAG_NAME, 'td')
-
-            if(dateCrawler(groups=groups,driver=driver,wait=wait,sehir=sehir)):
+            bulunanGun = dateCrawler(groups=groups,driver=driver,wait=wait,sehir=sehir)
+            if(bulunanGun):
                 keepSearch = False
-                return
+                return bulunanGun
             dateNextButtonElement.click()
             nextButtonClicked = False
             
         else: 
             datePickerGroupLast = datePickerElement.find_element(By.CLASS_NAME, "ui-datepicker-group-last")
             groups = [datePickerGroupLast]
-            if(dateCrawler(groups=groups,driver=driver,wait=wait,sehir=sehir)):
+            bulunanGun = dateCrawler(groups=groups,driver=driver,wait=wait,sehir=sehir)
+            if(bulunanGun):
                 keepSearch = False
-                return
+                return bulunanGun
             
             dateNextButtonElement = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, dateNextButtonClass)))
             dateNextButtonElement.click()
- 
+    return False    
 
 
 def tarihBul(driver, wait):
-    
+   
     randevuTarihInputID = "appointments_consulate_appointment_date"
    # datePickerDivID = "ui-datepicker-div"
     try:
@@ -221,6 +230,7 @@ def tarihBul(driver, wait):
     return True
 
 def randevuZamanla(driver, wait):
+    print("randevu zamanla girildi")
     time.sleep(1)
     konsulateLeftID = "consulate_left"
     konsoloslukElement = wait.until(EC.element_to_be_clickable((By.ID, konsulateLeftID)))
@@ -230,29 +240,30 @@ def randevuZamanla(driver, wait):
     selectElement = wait.until(EC.element_to_be_clickable((By.TAG_NAME, "select")))
     # selectElement.click()
     clickableOptions = wait.until(EC.element_to_be_clickable((By.TAG_NAME, "option")))
-    time.sleep(3)
+    time.sleep(2)
     options = konsoloslukElement.find_elements(By.TAG_NAME, "option")
     if (consulateAddressElement):
-       
         for option in options:
             if(option.text == "Ankara"):
-               
+                print("ankara giridli")  
                 time.sleep(2)
-                # selectElement.click()
-                # time.sleep(2)
-                # option.click()
-                # time.sleep(2)
-                # selectElement.click()
                 elementVar =  tarihBul(driver=driver,wait=wait)
                 if(elementVar):
-                   
-                    checkMonthByMonth(driver=driver,wait=wait,sehir="Ankara")
-                    #webdriver.ActionChains(driver).send_keys(Keys.ESCAPE).perform()  
-                   
-                else:
-                    continue
-            elif(option.text == "Istanbul"):
-               
+                    bulunanGun = checkMonthByMonth(driver=driver,wait=wait,sehir="Ankara")
+                    sorgulanan_tarih_kontrole_deger_mi = quickDateCheck(date=bulunanGun,availableDays=availableDays)
+                    if(sorgulanan_tarih_kontrole_deger_mi == False):
+                         print("Sorgulanan tarih kontrole degmez,diger yere bak")
+                         continue
+                    if(bulunanGun):
+                        availableHour = checkAvailableHours(driver=driver,wait=wait)
+                        if(availableHour):
+                            sehir = "Ankara"
+                            uygunluk_var_send_message(availableDays=availableDays,dayFound=bulunanGun,saat=availableHour,sehir=sehir,wait=wait)
+                    #webdriver.ActionChains(driver).send_keys(Keys.ESCAPE).perform()       
+                # else:
+                #     continue
+            elif(option.text == "Istanbul"): 
+                print("istanbul girildi")
                 time.sleep(3)
                 selectElement.click()
                 time.sleep(2)
@@ -261,17 +272,22 @@ def randevuZamanla(driver, wait):
                 selectElement.click()
                 elementVar =  tarihBul(driver=driver,wait=wait)
                 if(elementVar):
-                   
-                    checkMonthByMonth(driver=driver,wait=wait,sehir="İstanbul")
-                  
+                    bulunanGun = checkMonthByMonth(driver=driver,wait=wait,sehir="Ankara")
+                    sorgulanan_tarih_kontrole_deger_mi = quickDateCheck(date=bulunanGun,availableDays=availableDays)
+                    if(sorgulanan_tarih_kontrole_deger_mi == False):
+                         print("Sorgulanan tarih kontrole degmez, diger yere bak")
+                         continue
+                    if(bulunanGun):
+                        availableHour = checkAvailableHours(driver=driver,wait=wait)
+                        if(availableHour):
+                            sehir = "Istanbul"
+                            uygunluk_var_send_message(availableDays=availableDays,dayFound=bulunanGun,saat=availableHour,sehir=sehir,wait=wait)     
                     return
                     #webdriver.ActionChains(driver).send_keys(Keys.ESCAPE).perform()
                     time.sleep(4)
-                else:
-                  
-                    continue
-            else:
-                continue
+            
+    print("randevu zamanla sonu")
+    return        
            
     # istanbulOption = next(option for option in options if option.text == "Istanbul")
     # driver.implicitly_wait(2)
@@ -380,17 +396,14 @@ def all_steps_of_program(driver, wait):
 def main_program():
 
     try:
+        print("main try")
         driver = webdriver.Chrome()
         wait = WebDriverWait(driver, 6)
-        counter = 0
-       
-        while True:
-           
+        counter = 0    
+        while True:   
             try:
-                print("tried again")
-               
-                
-                if ((loginDuration[0] <= 2)):
+                print("inner try")
+                if((loginDuration[0] <= 2)):
                     driver.get('https://ais.usvisa-info.com/tr-tr/niv/users/sign_in')
                     checkReLoginAsk(driver=driver,wait=wait)
                     wait.until(EC.visibility_of_all_elements_located((By.CLASS_NAME, "mainContent")))
@@ -403,41 +416,40 @@ def main_program():
                     counter = 0
                     break
                 else:
-                    
                     driver.get('https://ais.usvisa-info.com/tr-tr/niv/schedule/58013846/continue_actions')
                     #alperin kısayolu
                    # driver.get('https://ais.usvisa-info.com/tr-tr/niv/schedule/58100733/appointment')
                     #wait.until(EC.visibility_of_all_elements_located((By.CLASS_NAME, "mainContent")))
                     noLoginNeed(driver=driver, wait=wait)
                     counter = counter + 1
-
             except Exception as e:
-               
+                print("inner except")
                 string_e = str(e)
-                print("stringe : ", string_e)
+               # print("stringe : ", string_e)
                 errorMessage = "exception1 {}".format(string_e)
                 logging.info(errorMessage)
-                messageSender("Bir Exception ile karsilasidi. Durumu Developer'a BILDIRIDINIZ")
-                #messageSender(errorMessage)
+                #messageSender("Bir Exception ile karsilasidi. Durumu Developer'a BILDIRIDINIZ")
                 loginDuration[0] = 0
                 counter = 0
                 driver.quit()
                 break
        
     except Exception as e:
-        print("7")
-        # print("there is an exception2 happened : ",e)
+        print("main except")
         string_e = str(e)
         errorMessage = "exception2 {}".format(string_e)
         logging.info(errorMessage)
-        messageSender("Program bir Exception ile karsilasti incelenemesi gerekiyor. Developer'a ulasin +905458510426")
-        loginDuration[0] = 0
-        counter = 0
-    else:
-        messageSender("Main Program Tekrar Başlatıldı")
+        #messageSender("Program bir Exception ile karsilasti incelenemesi gerekiyor. Developer'a ulasin +905458510426")
         loginDuration[0] = 0
         counter = 0
         main_program()
+    else:
+        print("Program sorunsuz calisti")
+       # messageSender("Main Program Tekrar Başlatıldı")
+        loginDuration[0] = 0
+        counter = 0
+        main_program()
+        
 
 
 main_program()
