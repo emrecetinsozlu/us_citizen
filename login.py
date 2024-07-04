@@ -420,7 +420,12 @@ def all_steps_of_program(driver, wait):
     
 
 def main_program():
-
+    mevcutTarihDolduruldu = input("KULLANICININ EN SON RANDEVU ALDIGI TARIH GIRILDI MI,GIRILMEDIYSE ILK BULUNAN TARIH ALINACAKTIR! y/n ??")
+    if(mevcutTarihDolduruldu == "y"):
+        pass
+    else:
+        return
+    
     try:
         print("main try")
         driver = webdriver.Chrome()
