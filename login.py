@@ -22,9 +22,13 @@ logging.basicConfig(filename='programLoglari.log',format='%(asctime)s - %(messag
 
 #git push origin us_visa_single:us_visa_single   
 
-my_Date = datetime(2028,3,15)
-the_date = {'saat':'08.00','tarih':my_Date,'sehir':"Eskisehir"}
-availableDays = [the_date]
+
+#buraya girilen tarihten önce olan tüm tarihler direkt alınır
+#hangi tarihten itibaren alınmasını istiyorsan o tarihi gir, ve ardından the_date i availableDays = [the_date] olarak gir
+limit_Tarih = datetime(2028,3,15)
+the_date = {'saat':'08.00','tarih':limit_Tarih,'sehir':"Eskisehir"}
+
+availableDays = []
 
 loginDuration = [2]
 
@@ -73,10 +77,10 @@ def randevuTarihiniDegistir(wait):
     tarihiniDegistirButtonLi.click()
     time.sleep(1)
     revalPopUp = wait.until(EC.visibility_of_element_located((By.CLASS_NAME, 'reveal')))
-    emin_misin_onayla_button = revalPopUp.find_elements(By.CLASS_NAME, "alert") 
-    print(emin_misin_onayla_button)
+    emin_misin_onayla_button = revalPopUp.find_element(By.CLASS_NAME, "alert") 
+    
     time.sleep(1)
-    #emin_misin_onayla_button.click()
+    emin_misin_onayla_button.click()
     messageSender("Randevu Tarihi Degistirildi.!")
     logging.info("Randevu tarihi degistirildi")
     print("randevutarihidegis sonu")
@@ -420,11 +424,7 @@ def all_steps_of_program(driver, wait):
     
 
 def main_program():
-    mevcutTarihDolduruldu = input("KULLANICININ EN SON RANDEVU ALDIGI TARIH GIRILDI MI,GIRILMEDIYSE ILK BULUNAN TARIH ALINACAKTIR! y/n ??")
-    if(mevcutTarihDolduruldu == "y"):
-        pass
-    else:
-        return
+   
     
     try:
         print("main try")
@@ -482,8 +482,12 @@ def main_program():
         main_program()
         
 
+# mevcutTarihDolduruldu = input("KULLANICININ EN SON RANDEVU ALDIGI TARIH GIRILDI MI,GIRILMEDIYSE ILK BULUNAN TARIH ALINACAKTIR! y/n ??")
+# if(mevcutTarihDolduruldu == "y"):
+#     main_program()
+# else:
+#     print("program sonlandirildi")
 
-main_program()
 
 
 # driver = webdriver.Chrome()
