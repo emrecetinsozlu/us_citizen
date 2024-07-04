@@ -22,8 +22,8 @@ logging.basicConfig(filename='programLoglari.log',format='%(asctime)s - %(messag
 
 #git push origin us_visa_single:us_visa_single   
 
-my_Date = datetime(2024,3,15)
-the_date = {'saat':'saat','tarih':my_Date,'sehir':"Eskisehir"}
+my_Date = datetime(2028,3,15)
+the_date = {'saat':'08.00','tarih':my_Date,'sehir':"Eskisehir"}
 availableDays = [the_date]
 
 loginDuration = [2]
@@ -38,15 +38,18 @@ def tooCloseWarning(date):
 def quickDateCheck(date,availableDays):
    
     if(len(availableDays) > 0):
-        sepetteki_Tarih = availableDays[0]['tarih']
-        string_sepetteki = sepetteki_Tarih.strftime("%Y-%m-%d")
-        string_date = date.strftime("%Y-%m-%d")
+        sepetteki_Tarih = availableDays[0]['tarih'] 
+        string_sepetteki = sepetteki_Tarih.strftime("%d-%m-%Y")
+        string_date = date.strftime("%d-%m-%Y")
         date_diff = (sepetteki_Tarih - date).days
         if(date_diff > 0):
             logging.info("Sepettekinden Daha erken bi tarih bulundu  bulunan tarih {} sepetteki tarih {}".format(string_date,string_sepetteki))
             return True
+        elif(date_diff == 0):
+            logging.info("Sepetteki tarih {} ile bulunan tarih tarih aynı {}".format(string_sepetteki,string_date))
+            return False
         else:
-            logging.info("Sepetteki tarih bulunan tarihten daha yakın bulunan tarih {}".format(string_date))
+            logging.info("Sepetteki tarih {} bulunan tarihten daha yakın bulunan tarih {}".format(string_sepetteki,string_date))
             return False
     else:
         logging.info("Sepette tarih yok o yüzden ilk bulunan tarih secilecek")
@@ -65,11 +68,11 @@ def randevuTarihiniDegistir(wait):
     print("randevitarihidegistir giridli")
     time.sleep(1)
     tarihiniDegistirButtonID = "appointments_submit_action"
-    tarihiniDegistirButtonLi = wait.until(EC.element_to_be_clickable((By.ID, tarihiniDegistirButtonID)))
+    tarihiniDegistirButtonLi = wait.until(EC.visibility_of_element_located((By.ID, tarihiniDegistirButtonID)))
     time.sleep(1.5)
     tarihiniDegistirButtonLi.click()
     time.sleep(1)
-    revalPopUp = wait.until(EC.visibility_of_all_elements_located((By.CLASS_NAME, 'reveal')))
+    revalPopUp = wait.until(EC.visibility_of_element_located((By.CLASS_NAME, 'reveal')))
     emin_misin_onayla_button = revalPopUp.find_elements(By.CLASS_NAME, "alert") 
     print(emin_misin_onayla_button)
     time.sleep(1)
@@ -79,10 +82,7 @@ def randevuTarihiniDegistir(wait):
     print("randevutarihidegis sonu")
 
 def uygunluk_var_send_message(availableDays,dayFound,saat,sehir,wait):
-    date_string = dayFound.strftime("%Y-%m-%d")
-    if(len(availableDays) > 0):
-        sepetteki = "Sepetteki tarih : {}".format(availableDays[0]['tarih'])
-        logging.info(sepetteki)
+    date_string = dayFound.strftime("%d-%m-%Y")
     kontrol_edilen = "Kontrol edilen tarih : {} - ".format(date_string)
     logging.info(kontrol_edilen)
     
@@ -94,8 +94,13 @@ def uygunluk_var_send_message(availableDays,dayFound,saat,sehir,wait):
         messageSender(the_message)
         logging.info(the_message)
         randevuTarihiniDegistir(wait=wait)
+        return True
 
     else:
+        sepetteki_tarih = availableDays[0]['tarih']
+        string_sepet_tarih =  sepetteki_tarih.strftime("%d-%m-%Y")
+        sepetteki = "Sepetteki tarih : {}".format(string_sepet_tarih)
+        logging.info(sepetteki)
         timeDifference = (availableDays[0]['tarih'] - dayFound).days
         #print("en son bulunan tarihten daha erkene cekilen gun sayısı", timeDifference)
         if (timeDifference > 0):
@@ -104,14 +109,14 @@ def uygunluk_var_send_message(availableDays,dayFound,saat,sehir,wait):
             logging.info(the_message)
             randevuTarihiniDegistir(wait=wait)
             availableDays[0] = the_day
-           
+            return True
         # elif(timeDifference == 0):
         #     print("Daha yeni bir tarih bulunamadı😢 , en yakın tarih hala {} {} {}".format(sehir,date_string,saat))
         #     messageSender("Daha yeni bir tarih bulunamadı😢 , en yakın tarih hala {}".format(date_string))
             
         else:
             last_avilable_day = availableDays[0]['tarih']
-            string_last_day = last_avilable_day.strftime("%Y-%m-%d")
+            string_last_day = last_avilable_day.strftime("%d-%m-%Y")
             #messageSender("😢 tarih giderek uzaklaştı. Yeni tarih {} {} {}, bir önceki tarih ise {} \'idi ".format(sehir,date_string,saat, string_last_day))
           
     # en_yakın_tarihteki_sehir = availableDays[0]['sehir']
@@ -272,7 +277,9 @@ def randevuZamanla(driver, wait):
                         availableHour = checkAvailableHours(driver=driver,wait=wait)
                         if(availableHour):
                             sehir = "Ankara"
-                            uygunluk_var_send_message(availableDays=availableDays,dayFound=bulunanGun,saat=availableHour,sehir=sehir,wait=wait)
+                            basarili = uygunluk_var_send_message(availableDays=availableDays,dayFound=bulunanGun,saat=availableHour,sehir=sehir,wait=wait)
+                            if(basarili):
+                                return 
                     #webdriver.ActionChains(driver).send_keys(Keys.ESCAPE).perform()       
                 # else:
                 #     continue
@@ -296,7 +303,9 @@ def randevuZamanla(driver, wait):
                         availableHour = checkAvailableHours(driver=driver,wait=wait)
                         if(availableHour):
                             sehir = "Istanbul"
-                            uygunluk_var_send_message(availableDays=availableDays,dayFound=bulunanGun,saat=availableHour,sehir=sehir,wait=wait)     
+                            basarili = uygunluk_var_send_message(availableDays=availableDays,dayFound=bulunanGun,saat=availableHour,sehir=sehir,wait=wait)     
+                            if(basarili):
+                                return
                     return
                     #webdriver.ActionChains(driver).send_keys(Keys.ESCAPE).perform()
                     time.sleep(4)
