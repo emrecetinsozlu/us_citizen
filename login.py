@@ -14,9 +14,13 @@ import time
 from discord import messageSender
 from expires import calculateDurationFromEpoch
 
-logging.basicConfig(filename='programLoglari.log', level=logging.INFO,datefmt='%Y-%m-%d %H:%M:%S')
+
+#date_format_logging = "%Y-%m-%d %H:%M:%S"
+logging.basicConfig(filename='programLoglari.log',format='%(asctime)s - %(message)s', level=logging.INFO)
 
 
+
+#git push origin us_visa_single:us_visa_single   
 
 my_Date = datetime(2024,3,15)
 the_date = {'saat':'saat','tarih':my_Date,'sehir':"Eskisehir"}
@@ -32,17 +36,20 @@ def tooCloseWarning(date):
         return True
         
 def quickDateCheck(date,availableDays):
-    print("quick check girildi")
+   
     if(len(availableDays) > 0):
         sepetteki_Tarih = availableDays[0]['tarih']
+        string_sepetteki = sepetteki_Tarih.strftime("%Y-%m-%d")
+        string_date = date.strftime("%Y-%m-%d")
         date_diff = (sepetteki_Tarih - date).days
         if(date_diff > 0):
-          
+            logging.info("Sepettekinden Daha erken bi tarih bulundu  bulunan tarih {} sepetteki tarih {}".format(string_date,string_sepetteki))
             return True
         else:
+            logging.info("Sepetteki tarih bulunan tarihten daha yakın bulunan tarih {}".format(string_date))
             return False
     else:
-       
+        logging.info("Sepette tarih yok o yüzden ilk bulunan tarih secilecek")
         return True
     
 
@@ -134,7 +141,12 @@ def checkAvailableHours(driver,wait):
         if(option.get_attribute('value')):
             proper_hour = option.get_attribute('value')
             proper_hour = str(proper_hour)
-            option.click()
+            try:
+                option.click()
+            except:
+                print("bu saate tıklanamadı diğer saat denenecek")
+                continue
+            
             time.sleep(1)
             return proper_hour
 
@@ -230,7 +242,7 @@ def tarihBul(driver, wait):
     return True
 
 def randevuZamanla(driver, wait):
-    print("randevu zamanla girildi")
+    
     time.sleep(1)
     konsulateLeftID = "consulate_left"
     konsoloslukElement = wait.until(EC.element_to_be_clickable((By.ID, konsulateLeftID)))
@@ -243,16 +255,18 @@ def randevuZamanla(driver, wait):
     time.sleep(2)
     options = konsoloslukElement.find_elements(By.TAG_NAME, "option")
     if (consulateAddressElement):
+       
         for option in options:
+           
             if(option.text == "Ankara"):
-                print("ankara giridli")  
+               
                 time.sleep(2)
                 elementVar =  tarihBul(driver=driver,wait=wait)
                 if(elementVar):
                     bulunanGun = checkMonthByMonth(driver=driver,wait=wait,sehir="Ankara")
                     sorgulanan_tarih_kontrole_deger_mi = quickDateCheck(date=bulunanGun,availableDays=availableDays)
                     if(sorgulanan_tarih_kontrole_deger_mi == False):
-                         print("Sorgulanan tarih kontrole degmez,diger yere bak")
+                         print("sorgulanan tarih degmez ankara")
                          continue
                     if(bulunanGun):
                         availableHour = checkAvailableHours(driver=driver,wait=wait)
@@ -264,19 +278,20 @@ def randevuZamanla(driver, wait):
                 #     continue
             elif(option.text == "Istanbul"): 
                 print("istanbul girildi")
-                time.sleep(3)
+                time.sleep(2)
                 selectElement.click()
                 time.sleep(2)
                 option.click()
                 time.sleep(2)
                 selectElement.click()
+                time.sleep(2)
                 elementVar =  tarihBul(driver=driver,wait=wait)
                 if(elementVar):
-                    bulunanGun = checkMonthByMonth(driver=driver,wait=wait,sehir="Ankara")
+                    bulunanGun = checkMonthByMonth(driver=driver,wait=wait,sehir="Istanbul")
                     sorgulanan_tarih_kontrole_deger_mi = quickDateCheck(date=bulunanGun,availableDays=availableDays)
                     if(sorgulanan_tarih_kontrole_deger_mi == False):
-                         print("Sorgulanan tarih kontrole degmez, diger yere bak")
-                         continue
+                         print("Sorgulanan tarih kontrole degmez, diger yere bak istanbul")
+                         return
                     if(bulunanGun):
                         availableHour = checkAvailableHours(driver=driver,wait=wait)
                         if(availableHour):
@@ -285,7 +300,8 @@ def randevuZamanla(driver, wait):
                     return
                     #webdriver.ActionChains(driver).send_keys(Keys.ESCAPE).perform()
                     time.sleep(4)
-            
+         
+                
     print("randevu zamanla sonu")
     return        
            
@@ -303,6 +319,7 @@ def basvuruSahibiSec(driver, wait):
 def randevuYenidenZamanla(driver, wait):
     randevuYenidenZamanla1Xpath = "/html/body/div[4]/main/div[2]/div[2]/div/section/ul/li[4]/a"
     randevuYenidenZamanla2Xpath = "/html/body/div[4]/main/div[2]/div[2]/div/section/ul/li[4]/div/div/div[2]/p[2]/a"
+    time.sleep(1)
     yenidenZamanla1Element = wait.until(EC.element_to_be_clickable((By.XPATH, randevuYenidenZamanla1Xpath)))
     yenidenZamanla1Element.click()
     yenidenZamanla2Element = wait.until(EC.element_to_be_clickable((By.XPATH, randevuYenidenZamanla2Xpath)))
@@ -366,7 +383,7 @@ def loginExpire(driver):
 
 
 def noLoginNeed(driver, wait):
-    
+    print("no login need")
    # basvuruSahibiSec(driver=driver, wait=wait)
    # mevcutDurum(driver=driver, wait=wait)
     # check localstorage
@@ -425,7 +442,7 @@ def main_program():
             except Exception as e:
                 print("inner except")
                 string_e = str(e)
-               # print("stringe : ", string_e)
+                print("stringe : ", string_e)
                 errorMessage = "exception1 {}".format(string_e)
                 logging.info(errorMessage)
                 #messageSender("Bir Exception ile karsilasidi. Durumu Developer'a BILDIRIDINIZ")
