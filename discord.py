@@ -5,10 +5,10 @@ import requests
 
 def messageSender(message):
    
-    url = "https://discord.com/api/v9/channels/1256640121940348930/messages"
+    url = "https://discord.com/api/v9/channels/12566348930/messages"
 
     message =  message
-    auth = "NTM5NDc4MzY4MTEwNzcyMjI1.GqYjyE.d7fWKZWHqxjmXe2yPR2OIkOd_VgDRHLibqAV1c"
+    auth = "NTM5NDc4MzY4MTEwNzgDRHLibqAV1c"
 
     payload = {
     "content" : message
