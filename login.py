@@ -230,7 +230,7 @@ def noLoginNeed(driver, wait):
 def all_steps_of_program(driver, wait):
     driver = driver
     wait = wait
-    login("mehmetalperdilek@hotmail.com","MAD1990**", driver=driver, wait=wait)
+    login("me....dilek@hotmail.com","M....0**", driver=driver, wait=wait)
     mevcutDurum(driver=driver, wait=wait)
     # check localstorage
     loginExpire(driver=driver)
